@@ -235,3 +235,4 @@ class Request:
     def __repr__(self):
         return f"Доставить {self.amount} {self.product} из {self.from_value} в {self.to_value}"
 
+
