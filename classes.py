@@ -2,24 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class Storage(ABC):
-    # @property
-    # @abstractmethod
-    # def items(self):
-    #     """
-    #     items (словарь название:количество)
-    #     :return:
-    #     """
-    #     pass
-    #
-    # @property
-    # @abstractmethod
-    # def capacity(self):
-    #     """
-    #     capacity (целое число)
-    #     :return:
-    #     """
-    #     pass
-
     @abstractmethod
     def add(self, item, quantity):
         """
@@ -74,11 +56,17 @@ class Store(Storage):
     def capacity(self):
         return self._capacity
 
-    # getters, setters ???? нужны или нет далее посмотреть
+    @items.setter
+    def items(self, items_dict):
+        self._items = items_dict
+
+    @capacity.setter
+    def capacity(self, capacity_value):
+        self._capacity = capacity_value
 
     def add(self, item, quantity):
+        # проверяем наличие свободных слотов
         if quantity <= self.get_free_space():
-            print(f"Свободных слотов: {self.get_free_space()}, хотим занять {quantity}")
 
             if item in self._items:
                 slots_taken_per_good = self._items[item]
@@ -86,16 +74,16 @@ class Store(Storage):
                 if slots_taken_per_good:
                     slots_taken_per_good += int(quantity)
                     self._items[item] = slots_taken_per_good
-                    print(f"Товар {item} добавлен в кол-ве {quantity}. Итого для {item} занято слотов: {slots_taken_per_good}")
-                    return self._items
-                    # clarify which return is needed and is convenient
+                    operation_successful = True
+                    return self._items, operation_successful, "Нужное количество товара будет добавлено."
 
             # если товара нет в наличии, добавляем указанное кол-во.
             self._items[item] = int(quantity)
-            print(f"Товар {item} добавлен в кол-ве {quantity}. Итого для {item} занято слотов: {quantity}")
-            return self._items
+            operation_successful = True
+            return self._items, operation_successful, "Нужное количество товара будет добавлено."
         else:
-            return f"Недостаточно места для добавления товара. Уменьшите количество товара."
+            operation_successful = False
+            return operation_successful, "Недостаточно места для добавления товара. Попробуйте что-то другое."
 
     def remove(self, item, quantity):
         if item in self._items:
@@ -105,19 +93,24 @@ class Store(Storage):
                 if quantity <= slots_taken_per_good:
                     slots_taken_per_good -= int(quantity)
                     self._items[item] = slots_taken_per_good
-                    print(f"Товар {item} снижен в кол-ве {quantity}. Итого для {item} занято слотов: {slots_taken_per_good}")
 
                     # если кол-во товара снижено до нуля, убираем вид товара (ключ из словаря),
                     # чтобы можно было добавить другой вид товара.
                     if slots_taken_per_good == 0:
                         del self._items[item]
+                        operation_successful = True
+                        return self._items, operation_successful, "Нужное количество товара есть в наличии."
 
-                    return self._items
+                    operation_successful = True
+                    return self._items, operation_successful, "Нужное количество товара есть в наличии."
+
                 else:
-                    return "Количество товара недостаточно для проведения операции."
+                    operation_successful = False
+                    return operation_successful, "Не хватает товара, попробуйте заказать меньше."
 
         # если товара нет в наличии
-        return "Такого товара нет в наличии."
+        operation_successful = False
+        return operation_successful, "Такого товара нет в наличии."
 
     def get_free_space(self):
         storage_space_taken = 0
@@ -129,9 +122,7 @@ class Store(Storage):
         return space_available
 
     def get_items(self):
-        for item_key, item_value in self._items.items():
-            print(f"{item_value} {item_key}")
-        return self._items
+        return "\n".join([f"{item_value} {item_key}" for item_key, item_value in self._items.items()])
 
     def get_unique_items_count(self):
         return len(self._items.keys())
@@ -150,10 +141,17 @@ class Shop(Store):
     def capacity(self):
         return self._capacity
 
+    @items.setter
+    def items(self, items_dict):
+        self._items = items_dict
+
+    @capacity.setter
+    def capacity(self, capacity_value):
+        self._capacity = capacity_value
+
     def add(self, item, quantity):
         # проверяем наличие свободных слотов для добавления товара.
         if quantity <= self.get_free_space():
-            print(f"Свободных слотов: {self.get_free_space()}, хотим занять {quantity}")
 
             # проверяем, имеется ли уже товар в магазине.
             # добавляем товар, если в магазине менее 5 различных видов товара.
@@ -161,71 +159,35 @@ class Shop(Store):
             if item not in self._items:
                 # для нового вида товара проверяем, позволяет ли лимит добавление в магазин.
                 if self.get_unique_items_count() >= 5:
-                    return "Невозможно добавить товар, т.к. будет превышен лимит по кол-ву видов товаров."
+                    operation_successful = False
+                    return operation_successful, "Невозможно добавить товар, т.к. будет превышен лимит по кол-ву" \
+                                                 " видов товаров."
 
                 self._items[item] = int(quantity)
-                print(f"Товар {item} добавлен в кол-ве {quantity}. Итого для {item} занято слотов: {quantity}")
-                return self._items
+                operation_successful = True
+                return self._items, operation_successful, "Нужное количество товара будет добавлено."
 
             # если товар уже есть в наличии, то корректируем его кол-во.
             if item in self._items:
-
                 slots_taken_per_good = self._items[item]
                 if slots_taken_per_good:
                     slots_taken_per_good += int(quantity)
                     self._items[item] = slots_taken_per_good
-                    print(f"Товар {item} добавлен в кол-ве {quantity}. Итого для {item} занято слотов: {slots_taken_per_good}")
-                    return self._items
+                    operation_successful = True
+                    return self._items, operation_successful, "Нужное количество товара будет добавлено."
 
         else:
-            return f"Недостаточно места для добавления товара. Уменьшите количество товара."
+            operation_successful = False
+            return operation_successful, "Недостаточно места для добавления товара. Попробуйте что-то другое."
 
     def remove(self, item, quantity):
         super().remove(item, quantity)
-        # none === 80 slots
-
-        # if item in self._items:
-        #
-        #     slots_taken_per_good = self._items[item]
-        #     # если есть товар в наличии, смотрим на достаточность имеющегося кол-ва.
-        #     if slots_taken_per_good:
-        #         if quantity <= slots_taken_per_good:
-        #             slots_taken_per_good -= int(quantity)
-        #             self._items[item] = slots_taken_per_good
-        #             print(f"Товар {item} снижен в кол-ве {quantity}. Итого для {item} занято слотов: {slots_taken_per_good}")
-        #
-        #             # если кол-во товара снижено до нуля, убираем вид товара (ключ из словаря),
-        #             # чтобы можно было добавить другой вид товара.
-        #             if slots_taken_per_good == 0:
-        #                 del self._items[item]
-        #
-        #             return self._items
-        #         else:
-        #             return "Количество товара недостаточно для проведения операции."
-        #
-        # # если товара нет в наличии
-        # return "Такого товара нет в наличии."
-
-    # def get_free_space(self):
-    #     storage_space_taken = 0
-    #     for item_name in self._items:
-    #         slots_taken_per_good = self._items[item_name]
-    #         storage_space_taken += slots_taken_per_good
-    #
-    #     space_available = self._capacity - storage_space_taken
-    #     return space_available
-    #
-    # def get_items(self):
-    #     return self._items
-    #
-    # def get_unique_items_count(self):
-    #     return len(self._items.keys())
 
 
 class Request:
     def __init__(self, input_str):
         data = input_str.split(" ")
-        # "Доставить 3 печеньки из склад в магазин"
+        # Строка формата: "Доставить 3 печеньки из склад в магазин"
 
         self.from_value = data[4]
         self.to_value = data[6]
@@ -235,4 +197,6 @@ class Request:
     def __repr__(self):
         return f"Доставить {self.amount} {self.product} из {self.from_value} в {self.to_value}"
 
-
+# what if shop not indicated == defaults or what
+# self.to_value = data[6]
+# IndexError: list index out of range
