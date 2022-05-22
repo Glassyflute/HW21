@@ -64,6 +64,9 @@ class Store(Storage):
     def capacity(self, capacity_value):
         self._capacity = capacity_value
 
+    def __repr__(self):
+        return "склад"
+
     def add(self, item, quantity):
         # проверяем наличие свободных слотов
         if quantity <= self.get_free_space():
@@ -149,6 +152,9 @@ class Shop(Store):
     def capacity(self, capacity_value):
         self._capacity = capacity_value
 
+    def __repr__(self):
+        return "магазин"
+
     def add(self, item, quantity):
         # проверяем наличие свободных слотов для добавления товара.
         if quantity <= self.get_free_space():
@@ -181,7 +187,32 @@ class Shop(Store):
             return operation_successful, "Недостаточно места для добавления товара. Попробуйте что-то другое."
 
     def remove(self, item, quantity):
-        super().remove(item, quantity)
+
+        if item in self._items:
+            slots_taken_per_good = self._items[item]
+            # если есть товар в наличии, смотрим на достаточность имеющегося кол-ва.
+            if slots_taken_per_good:
+                if quantity <= slots_taken_per_good:
+                    slots_taken_per_good -= int(quantity)
+                    self._items[item] = slots_taken_per_good
+
+                    # если кол-во товара снижено до нуля, убираем вид товара (ключ из словаря),
+                    # чтобы можно было добавить другой вид товара.
+                    if slots_taken_per_good == 0:
+                        del self._items[item]
+                        operation_successful = True
+                        return self._items, operation_successful, "Нужное количество товара есть в наличии."
+
+                    operation_successful = True
+                    return self._items, operation_successful, "Нужное количество товара есть в наличии."
+
+                else:
+                    operation_successful = False
+                    return operation_successful, "Не хватает товара, попробуйте заказать меньше."
+
+        # если товара нет в наличии
+        operation_successful = False
+        return operation_successful, "Такого товара нет в наличии."
 
 
 class Request:
@@ -189,14 +220,19 @@ class Request:
         data = input_str.split(" ")
         # Строка формата: "Доставить 3 печеньки из склад в магазин"
 
-        self.from_value = data[4]
-        self.to_value = data[6]
         self.amount = int(data[1])
         self.product = data[2]
+
+        if len(data) < 7:
+            # по умолчанию товар доставляется со склада в магазин.
+            self.from_value = "склад"
+            self.to_value = "магазин"
+
+        elif len(data) == 7:
+            # в полной версии можно указать доставку по обоим направлениям.
+            self.from_value = data[4]
+            self.to_value = data[6]
 
     def __repr__(self):
         return f"Доставить {self.amount} {self.product} из {self.from_value} в {self.to_value}"
 
-# what if shop not indicated == defaults or what
-# self.to_value = data[6]
-# IndexError: list index out of range
