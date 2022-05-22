@@ -27,6 +27,13 @@ def show_items(location_one, location_two):
 
 
 def order_transfer(location_one, location_two, user_request):
+    """
+    проводит операции доставки из локации отправки в локацию доставки.
+    :param location_one:
+    :param location_two:
+    :param user_request:
+    :return:
+    """
     location_one_result = location_one.remove(user_request.product, user_request.amount)
     if True in location_one_result:
         print("Нужное количество товара есть в наличии.")
